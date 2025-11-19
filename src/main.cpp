@@ -1,7 +1,10 @@
 #include <iostream>
 #include <vector>
 #include <iomanip>
-#include "structures.cpp"
+#include <fstream>
+
+#include "constants.hpp"
+#include "structure.hpp"
 
 using namespace std;
 
@@ -10,87 +13,87 @@ private:
     vector<Movie> movies;
     vector<FoodItem> menu;
     char seats[ROWS][COLS];
-    Movie selectedMovie;
-    vector<string> bookedSeats;
+
+    Movie selectedMovie{};
+    vector<Seat> bookedSeats;
     vector<FoodItem> orderedFood;
+
     int totalAmount = 0;
 
 public:
-    Theatre() {
-        // Initialize movie list
+    Theatre()
+    {
         movies.push_back({1, "Avengers: Endgame", "Action/Sci-Fi", "10:00 AM"});
         movies.push_back({2, "Inception", "Sci-Fi/Thriller", "1:30 PM"});
         movies.push_back({3, "The Lion King", "Animation/Drama", "5:00 PM"});
-        movies.push_back({4, "Interstellar", "Adventure/Sci-Fi", "8:00 PM"});
-        movies.push_back({5, "Joker", "Psychological/Drama", "10:30 PM"});
-        movies.push_back({6, "Avatar: The Way of Water", "Adventure/Fantasy", "12:00 PM"});
 
-        // Initialize food menu
         menu.push_back({1, "Popcorn", 100});
         menu.push_back({2, "Cold Drink", 80});
         menu.push_back({3, "Nachos", 120});
         menu.push_back({4, "Burger", 150});
-        menu.push_back({5, "Pizza Slice", 200});
-        menu.push_back({6, "French Fries", 90});
-        menu.push_back({7, "Ice Cream", 60});
-        menu.push_back({8, "Coffee", 70});
-        menu.push_back({9, "Sandwich", 110});
-        menu.push_back({10, "Chocolate Bar", 50});
+        menu.push_back({5, "Pizza Slice", 160});
 
-        // Initialize all seats as available
-        for (int i = 0; i < ROWS; i++)
-            for (int j = 0; j < COLS; j++)
+        for (int i = 0; i < ROWS; i++) {
+            for (int j = 0; j < COLS; j++) {
                 seats[i][j] = 'O';
+            }
+        }
     }
 
     void showMovies() {
-        cout << "\n========== AVAILABLE MOVIES ==========\n";
-        for (auto &m : movies) {
-            cout << setw(2) << m.id << ". " << m.name 
-                 << " (" << m.genre << ") - " << m.time << endl;
+        cout << "\n===== Available Movies =====\n";
+        for (const auto &m : movies) {
+            cout << m.id << ". " << m.name << " (" << m.genre << ") - " << m.time << "\n";
         }
     }
 
-    void selectMovie() {
+    void selectMovie()
+    {
         int choice;
-        cout << "\nEnter movie ID to select: ";
-        cin >> choice;
 
-        for (auto &m : movies) {
-            if (m.id == choice) {
-                selectedMovie = m;
-                cout << "\nYou selected: " << m.name 
-                     << " (" << m.genre << ") at " << m.time << endl;
-                return;
+        while (true) {
+            cout << "\nEnter movie ID to select: ";
+            cin >> choice;
+
+            for (const auto &m : movies) {
+                if (m.id == choice) {
+                    selectedMovie = m;
+                    cout << "\nYou selected: " << m.name << " (" << m.genre << ") at " << m.time << "\n";
+                    return;
+                }
             }
+            cout << "Invalid choice! Try again.\n";
         }
-        cout << "Invalid choice! Try again.\n";
-        selectMovie();
     }
 
-    void displaySeats() {
-        cout << "\n========== SEAT LAYOUT (O = Available, X = Booked) ==========\n\n   ";
-        for (int j = 0; j < COLS; j++)
+    void displaySeats()
+    {
+        cout << "\n===== Seat Layout (O = Available, X = Booked) =====\n\n   ";
+        for (int j = 0; j < COLS; j++) {
             cout << setw(2) << j + 1 << " ";
-        cout << endl;
+        }
+        cout << "\n";
 
         for (int i = 0; i < ROWS; i++) {
             cout << setw(2) << i + 1 << " ";
             for (int j = 0; j < COLS; j++) {
                 cout << " " << seats[i][j] << " ";
             }
-            cout << endl;
+            cout << "\n";
         }
     }
 
-    void bookSeat() {
+    void bookSeat()
+    {
         int row, col, numSeats;
+
         cout << "\nHow many seats do you want to book? ";
         cin >> numSeats;
 
         for (int k = 0; k < numSeats; k++) {
             cout << "Enter seat row (1-" << ROWS << "): ";
             cin >> row;
+
             cout << "Enter seat column (1-" << COLS << "): ";
             cin >> col;
 
@@ -100,83 +103,134 @@ public:
                 continue;
             }
 
-            if (seats[row-1][col-1] == 'X') {
+            if (seats[row - 1][col - 1] == 'X') {
                 cout << "Seat already booked! Choose another.\n";
                 k--;
-            } else {
-                seats[row-1][col-1] = 'X';
-                bookedSeats.push_back("Row " + to_string(row) + " Col " + to_string(col));
-                totalAmount += TICKET_PRICE;
-                cout << "Seat booked successfully!\n";
+                continue;
             }
+
+            seats[row - 1][col - 1] = 'X';
+            bookedSeats.push_back({row, col});
+            totalAmount += TICKET_PRICE;
+
+            cout << "Seat booked successfully!\n";
         }
     }
 
     void showMenu() {
         cout << "\n===== Food & Beverages Menu =====\n";
-        for (auto &f : menu) {
-            cout << f.id << ". " << f.name << " - Rs. " << f.price << endl;
+        for (const auto &f : menu) {
+            cout << f.id << ". " << f.name << " - Rs. " << f.price << "\n";
         }
     }
 
-    void orderFood() {
+    void orderFood()
+    {
         char choice;
         cout << "\nDo you want to order food? (y/n): ";
         cin >> choice;
 
-        if (choice == 'y' || choice == 'Y') {
-            int foodId, qty;
-            do {
-                showMenu();
-                cout << "Enter food ID to order (0 to finish): ";
-                cin >> foodId;
+        if (choice != 'y' && choice != 'Y')
+            return;
 
-                if (foodId == 0) break;
+        int foodId, qty;
 
-                cout << "Enter quantity: ";
-                cin >> qty;
+        while (true) {
+            showMenu();
+            cout << "Enter food ID to order (0 to finish): ";
+            cin >> foodId;
 
-                bool found = false;
-                for (auto &f : menu) {
-                    if (f.id == foodId) {
-                        for (int i = 0; i < qty; i++)
-                            orderedFood.push_back(f);
-                        totalAmount += f.price * qty;
-                        cout << f.name << " x" << qty << " added to order.\n";
-                        found = true;
-                        break;
+            if (foodId == 0)
+                break;
+
+            cout << "Enter quantity: ";
+            cin >> qty;
+
+            bool found = false;
+
+            for (const auto &f : menu) {
+                if (f.id == foodId) {
+                    for (int i = 0; i < qty; i++) {
+                        orderedFood.push_back(f);
                     }
+
+                    totalAmount += f.price * qty;
+                    cout << f.name << " x" << qty << " added.\n";
+                    found = true;
+                    break;
                 }
+            }
 
-                if (!found) cout << "Invalid food ID!\n";
-
-            } while (true);
+            if (!found)
+                cout << "Invalid food ID!\n";
         }
     }
+    void exportToJSON() 
+    {
+        ofstream file("bookings.json");
+        if (!file.is_open()) {
+            cout << "\nError: Unable to create bookings.json file!\n";
+            return;
+        }
 
-    void generateBill() {
-        cout << "\n=================== TICKET ===================\n";
-        cout << "Movie: " << selectedMovie.name 
-             << " (" << selectedMovie.genre << ")\n";
-        cout << "Show Time: " << selectedMovie.time << "\n";
+        file << "{\n";
+        file << "  \"movie\": \"" << selectedMovie.name << "\",\n";
+        file << "  \"time\": \"" << selectedMovie.time << "\",\n";
+
+        file << "  \"seats\": [\n";
+        for (size_t i = 0; i < bookedSeats.size(); i++) {
+            file << "    { \"row\": " << bookedSeats[i].row << ", \"col\": " << bookedSeats[i].col << " }";
+            if (i != bookedSeats.size() - 1) file << ",";
+            file << "\n";
+        }
+        file << "  ],\n";
+
+        file << "  \"food\": [\n";
+        for (size_t i = 0; i < orderedFood.size(); i++) {
+            file << "    { \"name\": \"" << orderedFood[i].name 
+                 << "\", \"price\": " << orderedFood[i].price << " }";
+            if (i != orderedFood.size() - 1) file << ",";
+            file << "\n";
+        }
+        file << "  ],\n";
+
+        file << "  \"total\": " << totalAmount << "\n";
+        file << "}\n";
+
+        file.close();
+        cout << "\nBookings exported to bookings.json successfully!\n";
+    }
+
+    void generateBill()
+    {
+        cout << "\n===== TICKET =====\n";
+
+        cout << "Movie: " << selectedMovie.name << " (" << selectedMovie.genre << ")\n";
+
+        cout << "Time: " << selectedMovie.time << "\n";
+
         cout << "Seats: ";
-        for (auto &s : bookedSeats) cout << s << "  ";
-        cout << "\nTicket Price: Rs. " << bookedSeats.size() * TICKET_PRICE << endl;
+        for (const auto &s : bookedSeats) {
+            cout << "(Row " << s.row << ", Col " << s.col << ") ";
+        }
+        cout << "\n";
+
+        cout << "Ticket Price: Rs. " << bookedSeats.size() * TICKET_PRICE << "\n";
 
         if (!orderedFood.empty()) {
             cout << "\nFood Ordered:\n";
-            for (auto &f : orderedFood) {
-                cout << "- " << f.name << " Rs. " << f.price << endl;
+            for (const auto &f : orderedFood) {
+                cout << "- " << f.name << " Rs. " << f.price << "\n";
             }
         }
 
-        cout << "\n----------------------------------------------\n";
-        cout << "TOTAL AMOUNT: Rs. " << totalAmount << endl;
-        cout << "==============================================\n";
+        cout << "\nTOTAL: Rs. " << totalAmount << "\n";
+        cout << "===================\n";
     }
 };
 
-int main() {
+int main()
+{
     Theatre t;
     t.showMovies();
     t.selectMovie();
@@ -184,5 +238,7 @@ int main() {
     t.bookSeat();
     t.orderFood();
     t.generateBill();
+    t.exportToJSON();
+
     return 0;
 }
